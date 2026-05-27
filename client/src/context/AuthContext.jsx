@@ -33,12 +33,20 @@ export const AuthProvider = ({ children }) => {
     const restoreSession = async () => {
       try {
         const res = await api.post("/auth/refresh");
+        window.__accessToken = res.data.accessToken;
         dispatch({ type: "SET_USER", payload: { user: res.data.user, accessToken: res.data.accessToken } });
       } catch {
+        window.__accessToken = null;
         dispatch({ type: "SET_LOADING", payload: false });
       }
     };
     restoreSession();
+  }, []);
+
+  useEffect(() => {
+    const handleForcedLogout = () => dispatch({ type: "LOGOUT" });
+    window.addEventListener("auth:logout", handleForcedLogout);
+    return () => window.removeEventListener("auth:logout", handleForcedLogout);
   }, []);
 
   const register = useCallback(async (name, email, password) => {
@@ -58,6 +66,7 @@ export const AuthProvider = ({ children }) => {
     dispatch({ type: "SET_LOADING", payload: true });
     try {
       const res = await api.post("/auth/login", { email, password });
+      window.__accessToken = res.data.accessToken;
       dispatch({ type: "SET_USER", payload: { user: res.data.user, accessToken: res.data.accessToken } });
       return { success: true };
     } catch (err) {
@@ -73,6 +82,7 @@ export const AuthProvider = ({ children }) => {
         headers: { Authorization: `Bearer ${state.accessToken}` },
       });
     } catch {}
+    window.__accessToken = null;
     dispatch({ type: "LOGOUT" });
   }, [state.accessToken]);
 
@@ -80,6 +90,7 @@ export const AuthProvider = ({ children }) => {
     dispatch({ type: "SET_LOADING", payload: true });
     try {
       const res = await api.post("/auth/google", { credential });
+      window.__accessToken = res.data.accessToken;
       dispatch({ type: "SET_USER", payload: { user: res.data.user, accessToken: res.data.accessToken } });
       return { success: true };
     } catch (err) {
@@ -108,6 +119,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const setAccessToken = useCallback((token) => {
+    window.__accessToken = token;
     dispatch({ type: "SET_USER", payload: { user: state.user, accessToken: token } });
   }, [state.user]);
 

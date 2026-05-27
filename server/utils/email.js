@@ -1,22 +1,45 @@
 const nodemailer = require("nodemailer");
 
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST,
-  port: process.env.EMAIL_PORT,
-  secure: false,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+const hasEmailConfig =
+  process.env.EMAIL_HOST &&
+  process.env.EMAIL_PORT &&
+  process.env.EMAIL_USER &&
+  process.env.EMAIL_PASS;
+
+const transporter = hasEmailConfig
+  ? nodemailer.createTransport({
+      host: process.env.EMAIL_HOST,
+      port: Number(process.env.EMAIL_PORT),
+      secure: process.env.EMAIL_SECURE === "true",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    })
+  : null;
+
+const sendMail = async (options, fallbackUrl) => {
+  if (!transporter) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("Email service is not configured");
+    }
+
+    console.log("Email service is not configured. Use this link for local testing:");
+    console.log(fallbackUrl);
+    return;
+  }
+
+  await transporter.sendMail(options);
+};
 
 /**
  * Send email verification link
  */
 const sendVerificationEmail = async (to, name, token) => {
-  const verifyUrl = `${process.env.CLIENT_URL}/verify-email?token=${token}`;
+  const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
+  const verifyUrl = `${clientUrl}/verify-email?token=${token}`;
 
-  await transporter.sendMail({
+  await sendMail({
     from: `"uKart" <${process.env.EMAIL_USER}>`,
     to,
     subject: "Verify your uKart email",
@@ -31,16 +54,17 @@ const sendVerificationEmail = async (to, name, token) => {
         <p style="color:#888;font-size:13px">If you didn't sign up, ignore this email.</p>
       </div>
     `,
-  });
+  }, verifyUrl);
 };
 
 /**
  * Send password reset link
  */
 const sendPasswordResetEmail = async (to, name, token) => {
-  const resetUrl = `${process.env.CLIENT_URL}/reset-password?token=${token}`;
+  const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
+  const resetUrl = `${clientUrl}/reset-password?token=${token}`;
 
-  await transporter.sendMail({
+  await sendMail({
     from: `"uKart" <${process.env.EMAIL_USER}>`,
     to,
     subject: "Reset your uKart password",
@@ -55,7 +79,7 @@ const sendPasswordResetEmail = async (to, name, token) => {
         <p style="color:#888;font-size:13px">If you didn't request this, ignore this email. Your password is safe.</p>
       </div>
     `,
-  });
+  }, resetUrl);
 };
 
 module.exports = { sendVerificationEmail, sendPasswordResetEmail };

@@ -6,15 +6,15 @@ import { useNavigate } from "react-router-dom";
  * Google Sign-In button using Google Identity Services (GSI).
  * Add this script to your public/index.html <head>:
  *   <script src="https://accounts.google.com/gsi/client" async defer></script>
- * Set REACT_APP_GOOGLE_CLIENT_ID in your .env
+ * Set VITE_GOOGLE_CLIENT_ID in your .env
  */
 const GoogleLoginButton = () => {
   const { googleLogin } = useAuth();
   const navigate = useNavigate();
   const btnRef = useRef(null);
+  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
   useEffect(() => {
-    const clientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
     if (!clientId || !window.google) return;
 
     window.google.accounts.id.initialize({
@@ -32,14 +32,14 @@ const GoogleLoginButton = () => {
       text: "continue_with",
       shape: "rectangular",
     });
-  }, [googleLogin, navigate]);
+  }, [clientId, googleLogin, navigate]);
 
   return (
     <div className="google-btn-wrap">
       <div ref={btnRef} />
-      {!process.env.REACT_APP_GOOGLE_CLIENT_ID && (
+      {!clientId && (
         <p style={{ fontSize: 12, color: "#9ca3af", textAlign: "center" }}>
-          Add REACT_APP_GOOGLE_CLIENT_ID to .env to enable Google login
+          Add VITE_GOOGLE_CLIENT_ID to .env to enable Google login
         </p>
       )}
     </div>
