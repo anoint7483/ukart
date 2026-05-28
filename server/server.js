@@ -8,6 +8,7 @@ const rateLimit = require("express-rate-limit");
 
 const connectDB = require("./config/db");
 const authRoutes = require("./routes/authRoutes");
+const productRoutes = require("./routes/productRoutes");
 
 dotenv.config();
 
@@ -19,9 +20,21 @@ const app = express();
 // ── Security Middleware ─────────────────────────────
 app.use(helmet());
 
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+].filter(Boolean);
+
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("Not allowed by CORS"));
+    },
     credentials: true,
   })
 );
@@ -42,6 +55,7 @@ app.use(cookieParser());
 
 // ── Routes ─────────────────────────────────────────
 app.use("/api/auth", authLimiter, authRoutes);
+app.use("/api/products", productRoutes);
 
 // Health Route
 app.get("/", (req, res) => {
