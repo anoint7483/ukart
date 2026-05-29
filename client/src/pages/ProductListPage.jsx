@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { FiLogOut, FiPackage, FiSearch, FiShoppingBag, FiSliders } from "react-icons/fi";
+import { FiLogOut, FiPackage, FiSearch, FiShoppingBag, FiShoppingCart, FiSliders, FiUser } from "react-icons/fi";
 import api from "../api/api";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/useAuth";
+import { useCart } from "../context/useCart";
 import "../styles/products.css";
 
 const fallbackImage =
@@ -17,6 +18,7 @@ const formatPrice = (value) =>
 
 const ProductListPage = () => {
   const { user, logout } = useAuth();
+  const { cart, addItem } = useCart();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [search, setSearch] = useState("");
@@ -24,6 +26,7 @@ const ProductListPage = () => {
   const [sort, setSort] = useState("newest");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [cartMessage, setCartMessage] = useState("");
 
   const params = useMemo(() => {
     const query = new URLSearchParams({ limit: "24" });
@@ -51,6 +54,13 @@ const ProductListPage = () => {
     fetchProducts();
   }, [params]);
 
+  const handleAddToCart = async (event, productId) => {
+    event.preventDefault();
+    setCartMessage("");
+    const result = await addItem(productId, 1);
+    setCartMessage(result.message);
+  };
+
   return (
     <main className="shop-shell">
       <header className="shop-topbar">
@@ -59,11 +69,26 @@ const ProductListPage = () => {
         </Link>
         <nav className="shop-nav">
           {user?.role === "admin" && (
-            <Link to="/dashboard" className="icon-link" title="Manage products">
-              <FiPackage />
-              <span>Admin</span>
-            </Link>
+            <>
+              <Link to="/dashboard" className="icon-link" title="Manage products">
+                <FiPackage />
+                <span>Admin</span>
+              </Link>
+            </>
           )}
+          <Link to="/orders" className="icon-link" title="View orders">
+            <FiShoppingBag />
+            <span>Orders</span>
+          </Link>
+          <Link to="/profile" className="icon-link" title="View profile">
+            <FiUser />
+            <span>Profile</span>
+          </Link>
+          <Link to="/cart" className="icon-link cart-link" title="View cart">
+            <FiShoppingCart />
+            <span>Cart</span>
+            {cart.totalItems > 0 && <strong>{cart.totalItems}</strong>}
+          </Link>
           <button className="icon-link icon-link--button" onClick={logout} title="Log out">
             <FiLogOut />
             <span>Logout</span>
@@ -118,6 +143,7 @@ const ProductListPage = () => {
       </section>
 
       {error && <div className="shop-alert">{error}</div>}
+      {cartMessage && <div className="shop-alert shop-alert--success">{cartMessage}</div>}
 
       {loading ? (
         <div className="product-state">Loading products...</div>
@@ -139,9 +165,20 @@ const ProductListPage = () => {
                   </div>
                   <h2>{product.name}</h2>
                   <p>{product.brand || "uKart selection"}</p>
-                  <div className="product-card__price">
-                    <strong>{formatPrice(price)}</strong>
-                    {product.discountPrice && <span>{formatPrice(product.price)}</span>}
+                  <div className="product-card__footer">
+                    <div className="product-card__price">
+                      <strong>{formatPrice(price)}</strong>
+                      {product.discountPrice && <span>{formatPrice(product.price)}</span>}
+                    </div>
+                    <button
+                      type="button"
+                      className="card-cart-button"
+                      onClick={(event) => handleAddToCart(event, product._id)}
+                      disabled={product.stock <= 0}
+                      title="Add to cart"
+                    >
+                      <FiShoppingCart />
+                    </button>
                   </div>
                 </div>
               </Link>

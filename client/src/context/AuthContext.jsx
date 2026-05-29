@@ -1,7 +1,6 @@
-import { createContext, useContext, useReducer, useCallback, useEffect } from "react";
+import { useReducer, useCallback, useEffect } from "react";
 import api from "../api/api";
-
-const AuthContext = createContext(null);
+import { AuthContext } from "./authContextValue";
 
 const initialState = {
   user: null,
@@ -20,6 +19,8 @@ const authReducer = (state, action) => {
       return { ...state, loading: action.payload };
     case "SET_ERROR":
       return { ...state, error: action.payload, loading: false };
+    case "UPDATE_USER":
+      return { ...state, user: action.payload, error: null };
     default:
       return state;
   }
@@ -81,7 +82,9 @@ export const AuthProvider = ({ children }) => {
       await api.post("/auth/logout", {}, {
         headers: { Authorization: `Bearer ${state.accessToken}` },
       });
-    } catch {}
+    } catch {
+      // Logout should still clear local state when the server session is already gone.
+    }
     window.__accessToken = null;
     dispatch({ type: "LOGOUT" });
   }, [state.accessToken]);
@@ -118,6 +121,27 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
+  const updateProfile = useCallback(async (name, avatar) => {
+    try {
+      const res = await api.patch("/auth/profile", { name, avatar });
+      dispatch({ type: "UPDATE_USER", payload: res.data.user });
+      return { success: true, message: res.data.message };
+    } catch (err) {
+      return { success: false, message: err.response?.data?.message || "Profile update failed" };
+    }
+  }, []);
+
+  const changePassword = useCallback(async (currentPassword, newPassword) => {
+    try {
+      const res = await api.patch("/auth/change-password", { currentPassword, newPassword });
+      window.__accessToken = null;
+      dispatch({ type: "LOGOUT" });
+      return { success: true, message: res.data.message };
+    } catch (err) {
+      return { success: false, message: err.response?.data?.message || "Password change failed" };
+    }
+  }, []);
+
   const setAccessToken = useCallback((token) => {
     window.__accessToken = token;
     dispatch({ type: "SET_USER", payload: { user: state.user, accessToken: token } });
@@ -132,15 +156,11 @@ export const AuthProvider = ({ children }) => {
       googleLogin,
       forgotPassword,
       resetPassword,
+      updateProfile,
+      changePassword,
       setAccessToken,
     }}>
       {children}
     </AuthContext.Provider>
   );
-};
-
-export const useAuth = () => {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used inside AuthProvider");
-  return ctx;
 };

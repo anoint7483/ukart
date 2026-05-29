@@ -124,6 +124,7 @@ const AdminProductsPage = () => {
           <h1>Product dashboard</h1>
           <p>Create, update, and remove catalog items.</p>
         </div>
+        <Link className="icon-link" to="/dashboard/orders">Orders</Link>
       </header>
 
       {(message || error) && (

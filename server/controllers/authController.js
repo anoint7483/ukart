@@ -323,3 +323,55 @@ exports.getMe = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+exports.updateProfile = async (req, res) => {
+  try {
+    const { name, avatar } = req.body;
+    const user = await User.findById(req.user.id);
+
+    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!name?.trim()) return res.status(400).json({ message: "Name is required" });
+
+    user.name = name.trim();
+    user.avatar = avatar?.trim() || "";
+    await user.save();
+
+    res.json({ message: "Profile updated successfully", user: safeUser(user) });
+  } catch (err) {
+    console.error("Update profile error:", err);
+    res.status(400).json({ message: err.message || "Unable to update profile" });
+  }
+};
+
+exports.changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: "Current and new password are required" });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: "Password must be at least 6 characters" });
+    }
+
+    const user = await User.findById(req.user.id).select("+password +refreshTokens");
+    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!user.password) {
+      return res.status(400).json({ message: "Password change is not available for this account" });
+    }
+
+    const isMatch = await user.comparePassword(currentPassword);
+    if (!isMatch) return res.status(401).json({ message: "Current password is incorrect" });
+
+    user.password = newPassword;
+    user.refreshTokens = [];
+    await user.save();
+
+    clearRefreshCookie(res);
+    res.json({ message: "Password changed successfully. Please log in again." });
+  } catch (err) {
+    console.error("Change password error:", err);
+    res.status(400).json({ message: err.message || "Unable to change password" });
+  }
+};

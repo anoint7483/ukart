@@ -9,6 +9,8 @@ const rateLimit = require("express-rate-limit");
 const connectDB = require("./config/db");
 const authRoutes = require("./routes/authRoutes");
 const productRoutes = require("./routes/productRoutes");
+const cartRoutes = require("./routes/cartRoutes");
+const orderRoutes = require("./routes/orderRoutes");
 
 dotenv.config();
 
@@ -56,6 +58,8 @@ app.use(cookieParser());
 // ── Routes ─────────────────────────────────────────
 app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/products", productRoutes);
+app.use("/api/cart", cartRoutes);
+app.use("/api/orders", orderRoutes);
 
 // Health Route
 app.get("/", (req, res) => {

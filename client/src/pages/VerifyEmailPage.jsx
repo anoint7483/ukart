@@ -6,15 +6,11 @@ import "../styles/auth.css";
 const VerifyEmailPage = () => {
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token");
-  const [status, setStatus] = useState("loading"); // "loading" | "success" | "error"
-  const [message, setMessage] = useState("");
+  const [status, setStatus] = useState(token ? "loading" : "error");
+  const [message, setMessage] = useState(token ? "" : "Verification token is missing.");
 
   useEffect(() => {
-    if (!token) {
-      setStatus("error");
-      setMessage("Verification token is missing.");
-      return;
-    }
+    if (!token) return;
 
     api.get(`/auth/verify-email?token=${token}`)
       .then((res) => {

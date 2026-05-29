@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { FiArrowLeft, FiBox, FiHeart, FiShoppingCart, FiTruck } from "react-icons/fi";
 import api from "../api/api";
+import { useCart } from "../context/useCart";
 import "../styles/products.css";
 
 const fallbackImage =
@@ -16,8 +17,11 @@ const formatPrice = (value) =>
 
 const ProductDetailPage = () => {
   const { id } = useParams();
+  const { addItem } = useCart();
   const [product, setProduct] = useState(null);
   const [selectedImage, setSelectedImage] = useState("");
+  const [quantity, setQuantity] = useState(1);
+  const [cartMessage, setCartMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -55,6 +59,12 @@ const ProductDetailPage = () => {
   const images = product.images?.length ? product.images : [fallbackImage];
   const price = product.discountPrice || product.price;
 
+  const handleAddToCart = async () => {
+    setCartMessage("");
+    const result = await addItem(product._id, quantity);
+    setCartMessage(result.message);
+  };
+
   return (
     <main className="shop-shell">
       <Link className="back-link" to="/"><FiArrowLeft /> Back to products</Link>
@@ -87,8 +97,21 @@ const ProductDetailPage = () => {
           </div>
           <p className="detail-description">{product.description}</p>
 
+          {cartMessage && <div className="detail-message">{cartMessage}</div>}
+
           <div className="detail-actions">
-            <button className="primary-action" disabled={product.stock <= 0}>
+            <label className="detail-quantity">
+              Qty
+              <input
+                type="number"
+                min="1"
+                max={product.stock}
+                value={quantity}
+                onChange={(event) => setQuantity(Math.max(Number(event.target.value) || 1, 1))}
+                disabled={product.stock <= 0}
+              />
+            </label>
+            <button className="primary-action" disabled={product.stock <= 0} onClick={handleAddToCart}>
               <FiShoppingCart />
               {product.stock > 0 ? "Add to cart" : "Out of stock"}
             </button>
