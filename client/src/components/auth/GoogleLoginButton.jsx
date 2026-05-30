@@ -39,7 +39,6 @@ const GoogleLoginButton = () => {
       <div ref={btnRef} />
       {!clientId && (
         <p style={{ fontSize: 12, color: "#9ca3af", textAlign: "center" }}>
-          Add VITE_GOOGLE_CLIENT_ID to .env to enable Google login
         </p>
       )}
     </div>
